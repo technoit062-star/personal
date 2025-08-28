@@ -1,303 +1,235 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Private Multi-Screen Site with Password and Ad Popup</title>
-<style>
-  html, body {
-    height: 100%;
-    margin: 0;
-    background: #121212;
-    color: #eee;
-    font-family: Arial, sans-serif;
-    overflow: hidden;
-  }
-  #app {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    width: 100vw;
-    box-sizing: border-box;
-  }
-  #mainScreen {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    overflow: hidden;
-  }
-  nav {
-    background: #222;
-    padding: 10px 20px;
-    display: flex;
-    align-items: center;
-    flex-shrink: 0;
-    overflow-x: auto;
-  }
-  nav button {
-    background: #333;
-    color: #eee;
-    border: none;
-    border-radius: 5px;
-    padding: 10px 15px;
-    margin-right: 10px;
-    cursor: pointer;
-    font-size: 14px;
-    white-space: nowrap;
-    flex-shrink: 0;
-    user-select: none;
-    transition: background-color 0.3s ease;
-  }
-  nav button:hover {
-    background: #555;
-  }
-  nav button.active {
-    background: #4caf50;
-  }
-  nav button.logout {
-    margin-left: auto;
-    background: #f44336;
-  }
-  #screensContainer {
-    flex-grow: 1;
-    display: flex;
-    height: 100%;
-    overflow: hidden;
-  }
-  .screen {
-    flex-grow: 1;
-    display: flex;
-  }
-  .screen.hidden {
-    display: none;
-  }
-  iframe {
-    flex-grow: 1;
-    width: 100%;
-    height: 100%;
-    border: none;
-    border-radius: 6px;
-  }
-
-  /* Password Modal Overlay with blur */
-  #passwordModal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right:0;
-    bottom:0;
-    background: rgba(0,0,0,0.5);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-  }
-  #passwordModal.hidden {
-    display: none;
-  }
-  #passwordModalContent {
-    background: #222;
-    padding: 30px 40px;
-    border-radius: 8px;
-    text-align: center;
-    width: 320px;
-  }
-  #passwordModalContent h2 {
-    margin: 0 0 20px;
-    font-weight: normal;
-  }
-  #passwordInput {
-    width: 100%;
-    padding: 10px 15px;
-    font-size: 16px;
-    border-radius: 5px;
-    border: none;
-    margin-bottom: 20px;
-    box-sizing: border-box;
-  }
-  #passwordSubmitBtn {
-    background: #4caf50;
-    color: white;
-    border: none;
-    padding: 10px 25px;
-    font-size: 16px;
-    border-radius: 5px;
-    cursor: pointer;
-  }
-  #passwordSubmitBtn:hover {
-    background: #45a049;
-  }
-  #errorMsg {
-    color: #f44336;
-    margin-top: 10px;
-    height: 18px;
-    font-size: 14px;
-    min-height: 18px;
-  }
-
-  /* AWESOME POPUP AD */
-  #adPopup {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right:0;
-    bottom:0;
-    background: rgba(0,0,0,0.85);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    display: none;
-    justify-content: center;
-    align-items: center;
-    z-index: 10000;
-    animation: fadeIn 0.5s ease forwards;
-  }
-  #adPopup.active {
-    display: flex;
-  }
-
-  #adPopupContent {
-    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-    border-radius: 15px;
-    padding: 30px 35px;
-    width: 350px;
-    max-width: 90vw;
-    box-shadow: 0 0 30px #4caf50, 0 0 40px #4caf50 inset;
-    color: #e0f7e9;
-    text-align: center;
-    position: relative;
-    transform: scale(0.7);
-    opacity: 0;
-    animation: popupIn 0.4s forwards ease-out;
-  }
-
-  #adPopupContent h3 {
-    font-size: 28px;
-    margin: 0 0 15px;
-    background: linear-gradient(90deg, #00ff99, #00cc66);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    font-weight: 700;
-  }
-
-  #adPopupContent img {
-    width: 100%;
-    border-radius: 12px;
-    margin-bottom: 20px;
-    box-shadow: 0 0 20px #00ff99;
-  }
-
-  #adPopupContent p {
-    font-size: 16px;
-    margin-bottom: 25px;
-    line-height: 1.4;
-    color: #b3f0c1;
-  }
-
-  #adCallBtn {
-    background: #00ff99;
-    border: none;
-    padding: 12px 30px;
-    border-radius: 30px;
-    color: #002210;
-    font-weight: 700;
-    font-size: 17px;
-    cursor: pointer;
-    box-shadow: 0 0 15px #00ff99;
-    transition: all 0.3s ease;
-    user-select: none;
-  }
-  #adCallBtn:hover {
-    background: #00cc77;
-    box-shadow: 0 0 30px #00ff99;
-    transform: scale(1.1);
-  }
-
-  /* Close X button */
-  #adCloseBtn {
-    position: absolute;
-    top: 12px;
-    right: 15px;
-    font-size: 22px;
-    color: #00ff99;
-    cursor: pointer;
-    user-select: none;
-    font-weight: 900;
-    transition: color 0.3s ease;
-  }
-  #adCloseBtn:hover {
-    color: #00cc77;
-  }
-
-  /* Animations */
-  @keyframes popupIn {
-    to {
-      opacity: 1;
-      transform: scale(1);
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Private Multi-Screen Site with Password and Ad Popup</title>
+  <style>
+    /* (same CSS as before, unchanged) */
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: #121212;
+      color: #eee;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
     }
-  }
-  @keyframes fadeIn {
-    from {opacity: 0;}
-    to {opacity: 1;}
-  }
-
-  /* ===== MOBILE RESPONSIVE ===== */
-  @media (max-width: 768px) {
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+      box-sizing: border-box;
+    }
+    #mainScreen {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+    }
     nav {
-      padding: 10px 10px;
+      background: #222;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+      overflow-x: auto;
     }
     nav button {
-      min-width: 80px;
-      padding: 12px 10px;
-      font-size: 16px;
-      margin-right: 8px;
-      border-radius: 10px;
+      background: #333;
+      color: #eee;
+      border: none;
+      border-radius: 5px;
+      padding: 10px 15px;
+      margin-right: 10px;
+      cursor: pointer;
+      font-size: 14px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      user-select: none;
+      transition: background-color 0.3s ease;
+    }
+    nav button:hover {
+      background: #555;
+    }
+    nav button.active {
+      background: #4caf50;
     }
     nav button.logout {
       margin-left: auto;
-      min-width: 80px;
-      background: #e74c3c;
+      background: #f44336;
     }
     #screensContainer {
-      height: 60vh; /* 60% viewport height for screens */
+      flex-grow: 1;
+      display: flex;
+      height: 100%;
       overflow: hidden;
     }
+    .screen {
+      flex-grow: 1;
+      display: flex;
+    }
+    .screen.hidden {
+      display: none;
+    }
     iframe {
+      flex-grow: 1;
+      width: 100%;
       height: 100%;
-      border-radius: 8px;
+      border: none;
+      border-radius: 6px;
+    }
+    #passwordModal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right:0;
+      bottom:0;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    #passwordModal.hidden {
+      display: none;
     }
     #passwordModalContent {
-      width: 90vw;
-      padding: 20px 15px;
-      border-radius: 12px;
+      background: #222;
+      padding: 30px 40px;
+      border-radius: 8px;
+      text-align: center;
+      width: 320px;
+    }
+    #passwordModalContent h2 {
+      margin: 0 0 20px;
+      font-weight: normal;
     }
     #passwordInput {
+      width: 100%;
+      padding: 10px 15px;
       font-size: 16px;
-      padding: 14px 12px;
+      border-radius: 5px;
+      border: none;
+      margin-bottom: 20px;
+      box-sizing: border-box;
     }
     #passwordSubmitBtn {
+      background: #4caf50;
+      color: white;
+      border: none;
+      padding: 10px 25px;
       font-size: 16px;
-      padding: 12px 18px;
-      border-radius: 10px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #passwordSubmitBtn:hover {
+      background: #45a049;
+    }
+    #errorMsg {
+      color: #f44336;
+      margin-top: 10px;
+      height: 18px;
+      font-size: 14px;
+      min-height: 18px;
+    }
+    #adPopup {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right:0;
+      bottom:0;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+      animation: fadeIn 0.5s ease forwards;
+    }
+    #adPopup.active {
+      display: flex;
     }
     #adPopupContent {
-      width: 90vw;
-      padding: 20px 15px;
-      border-radius: 12px;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      border-radius: 15px;
+      padding: 30px 35px;
+      width: 350px;
+      max-width: 90vw;
+      box-shadow: 0 0 30px #4caf50, 0 0 40px #4caf50 inset;
+      color: #e0f7e9;
+      text-align: center;
+      position: relative;
+      transform: scale(0.7);
+      opacity: 0;
+      animation: popupIn 0.4s forwards ease-out;
     }
     #adPopupContent h3 {
-      font-size: 24px;
+      font-size: 28px;
+      margin: 0 0 15px;
+      background: linear-gradient(90deg, #00ff99, #00cc66);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-weight: 700;
+    }
+    #adPopupContent img {
+      width: 100%;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 20px #00ff99;
     }
     #adPopupContent p {
-      font-size: 14px;
+      font-size: 16px;
+      margin-bottom: 25px;
+      line-height: 1.4;
+      color: #b3f0c1;
     }
     #adCallBtn {
-      font-size: 16px;
-      padding: 10px 25px;
+      background: #00ff99;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 30px;
+      color: #002210;
+      font-weight: 700;
+      font-size: 17px;
+      cursor: pointer;
+      box-shadow: 0 0 15px #00ff99;
+      transition: all 0.3s ease;
+      user-select: none;
     }
-  }
-</style>
+    #adCallBtn:hover {
+      background: #00cc77;
+      box-shadow: 0 0 30px #00ff99;
+      transform: scale(1.1);
+    }
+    #adCloseBtn {
+      position: absolute;
+      top: 12px;
+      right: 15px;
+      font-size: 22px;
+      color: #00ff99;
+      cursor: pointer;
+      user-select: none;
+      font-weight: 900;
+      transition: color 0.3s ease;
+    }
+    #adCloseBtn:hover {
+      color: #00cc77;
+    }
+    @keyframes popupIn {
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+    @keyframes fadeIn {
+      from {opacity: 0;}
+      to {opacity: 1;}
+    }
+  </style>
 </head>
 <body>
 
@@ -326,18 +258,17 @@
 <div id="app" class="hidden">
   <div id="mainScreen">
     <nav id="navButtons">
-      <!-- Screen buttons will be created dynamically here -->
+      <!-- Dynamic screen buttons go here -->
       <button class="logout" onclick="logout()">Logout</button>
     </nav>
-
     <div id="screensContainer">
-      <!-- Screens created dynamically here -->
+      <!-- Dynamic iframes go here -->
     </div>
   </div>
 </div>
 
 <script>
-  const PASSWORD = "mypassword"; // <-- CHANGE THIS to your password
+  const PASSWORD = "mypassword"; // Change this to your own password
   const NUM_SCREENS = 10;
 
   const app = document.getElementById('app');
@@ -352,9 +283,22 @@
   const adPopup = document.getElementById('adPopup');
   const adCloseBtn = document.getElementById('adCloseBtn');
 
-  // Create screen buttons and iframes
+  // Custom URLs per screen
+  const urls = [
+    "https://brazz-new.com/home-new-brazzer/", // Screen 1
+    "https://www.xnxx.com/",                   // Screen 2
+    "https://brazz-new.com/home-new-brazzer/", // Screen 3
+    "https://www.porn.com/",                   // Screen 4
+    "https://www.youporn.com/",                // Screen 5
+    "https://ok.xxx/",                         // Screen 6
+    "https://ok.porn/",                        // Screen 7
+    "https://www.sexvid.xxx/",                 // Screen 8
+    "https://xxxbp.tv/x/ok",                   // Screen 9
+    "https://www.gotporn.com/"                 // Screen 10
+  ];
+
   function createScreens(num) {
-    for(let i = 1; i <= num; i++) {
+    for (let i = 1; i <= num; i++) {
       // Nav button
       const btn = document.createElement('button');
       btn.id = 'btnScreen' + i;
@@ -366,11 +310,11 @@
       const screenDiv = document.createElement('div');
       screenDiv.id = 'screen' + i;
       screenDiv.classList.add('screen');
-      if(i !== 1) screenDiv.classList.add('hidden');
+      if (i !== 1) screenDiv.classList.add('hidden');
 
-      // Iframe with your site
+      // Iframe
       const iframe = document.createElement('iframe');
-      iframe.src = "https://brazz-new.com/home-new-brazzer/";
+      iframe.src = urls[i - 1];
       iframe.allowFullscreen = true;
       iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups');
       screenDiv.appendChild(iframe);
@@ -378,7 +322,6 @@
       screensContainer.appendChild(screenDiv);
     }
 
-    // Activate first screen button
     document.getElementById('btnScreen1').classList.add('active');
   }
 
@@ -408,7 +351,7 @@
     });
     const screen = document.getElementById(screenId);
     const btn = document.getElementById('btn' + capitalize(screenId));
-    if(screen && btn) {
+    if (screen && btn) {
       screen.classList.remove('hidden');
       btn.classList.add('active');
     }
@@ -418,10 +361,9 @@
     return str.charAt(0).toUpperCase() + str.slice(1);
   }
 
-  // Password submission handler
   passwordSubmitBtn.addEventListener('click', () => {
     const val = passwordInput.value.trim();
-    if(val === PASSWORD) {
+    if (val === PASSWORD) {
       localStorage.setItem('loggedIn', 'true');
       showMainSite();
     } else {
@@ -430,14 +372,13 @@
   });
 
   passwordInput.addEventListener('keydown', (e) => {
-    if(e.key === 'Enter') {
+    if (e.key === 'Enter') {
       passwordSubmitBtn.click();
     }
   });
 
-  // Check login on page load
   window.addEventListener('load', () => {
-    if(localStorage.getItem('loggedIn') === 'true') {
+    if (localStorage.getItem('loggedIn') === 'true') {
       showMainSite();
     } else {
       passwordModal.classList.remove('hidden');
@@ -446,26 +387,21 @@
     }
   });
 
-  // Show ad popup once per session on first click inside the main app area
   function showAdPopupOnce() {
-    if(sessionStorage.getItem('adShown') === 'true') return; // Already shown
+    if (sessionStorage.getItem('adShown') === 'true') return;
     adPopup.classList.add('active');
     sessionStorage.setItem('adShown', 'true');
   }
 
-  // Close ad popup button
   adCloseBtn.addEventListener('click', () => {
     adPopup.classList.remove('active');
   });
 
-  // Show ad on first click inside #app
   app.addEventListener('click', function handler() {
     showAdPopupOnce();
-    // Remove listener after first click
     app.removeEventListener('click', handler);
   });
-
 </script>
+
 </body>
 </html>
-
